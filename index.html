@@ -85,9 +85,9 @@
   .platform-icon.pi-other{ background: #f3e8ff; color: #7c3aed; }
 
   /* ── 詳情 Modal ── */
-  .overlay { display: none; position: fixed; inset: 0; background: rgba(60,20,30,0.45); z-index: 100; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(60,20,30,0.45); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
   .overlay.open { display: flex; }
-  .modal { background: var(--card-bg); border-radius: 22px; max-width: 520px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: pop 0.22s cubic-bezier(0.34,1.56,0.64,1); }
+  .modal { background: var(--card-bg); border-radius: 22px; max-width: 520px; width: 100%; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: pop 0.22s cubic-bezier(0.34,1.56,0.64,1); }
   @keyframes pop { from { transform: scale(0.88); opacity:0; } to { transform: scale(1); opacity:1; } }
   .modal-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 22px 22px 0 0; background: #f5e8ee; display: flex; align-items: center; justify-content: center; font-size: 80px; overflow: hidden; }
   .modal-img img { width:100%; height:100%; object-fit:cover; border-radius: 22px 22px 0 0; }
@@ -133,9 +133,9 @@
   .io-btn.danger:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 
   /* ── 新增/編輯表單 Modal ── */
-  .form-overlay { display: none; position: fixed; inset: 0; background: rgba(40,10,20,0.5); z-index: 200; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; backdrop-filter: blur(4px); }
-  .form-overlay.open { display: flex; }
-  .form-modal { background: var(--card-bg); border-radius: 22px; max-width: 540px; width: 100%; padding: 28px 28px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: pop 0.22s cubic-bezier(0.34,1.56,0.64,1); margin: auto; }
+  .form-overlay { display: none; position: fixed; inset: 0; background: rgba(40,10,20,0.5); z-index: 200; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .form-overlay.open { display: block; }
+  .form-modal { background: var(--card-bg); border-radius: 22px; max-width: 540px; width: calc(100% - 40px); padding: 28px 28px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: 20px auto; position: relative; }
   .form-modal h2 { font-size: 18px; font-weight: 800; margin-bottom: 22px; color: var(--accent); }
 
   .form-group { margin-bottom: 16px; }
@@ -223,23 +223,23 @@
 
 <!-- 匯出/匯入工具列 -->
 <div class="io-bar">
-  <button class="io-btn" onclick="exportData()">📤 匯出備份</button>
-  <button class="io-btn" onclick="document.getElementById('importInput').click()">📥 匯入還原</button>
-  <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+  <button class="io-btn" id="btnExport" type="button">📤 匯出備份</button>
+  <button class="io-btn" id="btnImport" type="button">📥 匯入還原</button>
+  <input type="file" id="importInput" accept=".json" style="display:none">
 </div>
 
 <div class="gallery" id="gallery"></div>
 
 <!-- 詳情 Modal -->
-<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+<div class="overlay" id="overlay">
   <div class="modal-wrapper">
-    <button class="close-btn" onclick="closeModal()">✕</button>
+    <button class="close-btn" id="btnCloseModal">✕</button>
     <div class="modal" id="modal"></div>
   </div>
 </div>
 
 <!-- 新增/編輯表單 Modal -->
-<div class="form-overlay" id="formOverlay" onclick="handleFormOverlayClick(event)">
+<div class="form-overlay" id="formOverlay">
   <div class="form-modal" id="formModal">
     <h2 id="formTitle">✨ 新增作品</h2>
 
@@ -252,8 +252,8 @@
             <span class="upload-icon">🖼️</span>
             <div class="upload-hint">點擊上傳<br><span style="font-size:10px;opacity:0.7">封面縮圖</span></div>
             <img id="coverPreview" src="" alt="" style="display:none">
-            <button class="img-clear" id="coverClear" onclick="clearCover(event)">✕</button>
-            <input type="file" id="coverInput" accept="image/*" onchange="handleCoverUpload(event)">
+            <button class="img-clear" id="coverClear" type="button">✕</button>
+            <input type="file" id="coverInput" accept="image/*">
           </div>
         </div>
         <div>
@@ -262,8 +262,8 @@
             <span class="upload-icon" id="displayIcon">🎨</span>
             <div class="upload-hint" id="displayHint">點擊上傳<br><span style="font-size:10px;opacity:0.7">展示主圖</span></div>
             <img id="displayPreview" src="" alt="" style="display:none">
-            <button class="img-clear" id="displayClear" onclick="clearDisplay(event)">✕</button>
-            <input type="file" id="displayInput" accept="image/*" onchange="handleDisplayUpload(event)">
+            <button class="img-clear" id="displayClear" type="button">✕</button>
+            <input type="file" id="displayInput" accept="image/*">
           </div>
         </div>
       </div>
@@ -282,7 +282,7 @@
     <div class="form-row">
       <div class="form-group">
         <label>已完成</label>
-        <div class="toggle-row" id="doneToggle" onclick="toggleDone()">
+        <div class="toggle-row" id="doneToggle">
           <div class="toggle-box"></div>
           <span class="toggle-label">尚未完成</span>
         </div>
@@ -300,7 +300,7 @@
       </div>
       <div class="form-group">
         <label>材料已購</label>
-        <div class="toggle-row" id="boughtToggle" onclick="toggleBought()">
+        <div class="toggle-row" id="boughtToggle">
           <div class="toggle-box"></div>
           <span class="toggle-label">尚未購買</span>
         </div>
@@ -309,8 +309,8 @@
 
     <div class="form-group">
       <label>標籤（輸入後按 Enter 新增）</label>
-      <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
-        <input type="text" id="tagInput" placeholder="例如：鉤針" onkeydown="handleTagInput(event)">
+      <div class="tags-input-wrap" id="tagsWrap">
+        <input type="text" id="tagInput" placeholder="例如：鉤針">
       </div>
     </div>
 
@@ -345,13 +345,13 @@
     </div>
 
     <div class="form-btns">
-      <button class="btn-cancel" id="btnCancel">取消</button>
-      <button class="btn-save" id="btnSave">💾 儲存作品</button>
+      <button class="btn-cancel" id="btnCancel" type="button">取消</button>
+      <button class="btn-save" id="btnSave" type="button">💾 儲存作品</button>
     </div>
   </div>
 </div>
 
-<button class="add-btn" onclick="openForm()">➕ 新增作品</button>
+<button class="add-btn" id="btnAddWork" type="button">➕ 新增作品</button>
 
 <script>
 /* ═══════════════════════════════════════════
@@ -875,11 +875,48 @@ function saveWork() {
   render();
 }
 
-/* 初始化 */
-document.getElementById('btnSave').addEventListener('click', saveWork);
-document.getElementById('btnCancel').addEventListener('click', closeForm);
-buildFilterBar();
-render();
+/* 初始化 — 所有事件統一在這裡綁定，iOS 相容 */
+function init() {
+  // 主要按鈕
+  document.getElementById('btnAddWork').addEventListener('click', () => openForm());
+  document.getElementById('btnSave').addEventListener('click', saveWork);
+  document.getElementById('btnCancel').addEventListener('click', closeForm);
+  document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+
+  // 詳情遮罩點擊關閉
+  document.getElementById('overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('overlay')) closeModal();
+  });
+
+  // 表單遮罩點擊關閉
+  document.getElementById('formOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('formOverlay')) closeForm();
+  });
+
+  // Toggle 開關
+  document.getElementById('doneToggle').addEventListener('click', toggleDone);
+  document.getElementById('boughtToggle').addEventListener('click', toggleBought);
+
+  // 標籤輸入
+  document.getElementById('tagInput').addEventListener('keydown', handleTagInput);
+  document.getElementById('tagsWrap').addEventListener('click', () => document.getElementById('tagInput').focus());
+
+  // 圖片上傳
+  document.getElementById('coverInput').addEventListener('change', handleCoverUpload);
+  document.getElementById('displayInput').addEventListener('change', handleDisplayUpload);
+  document.getElementById('coverClear').addEventListener('click', clearCover);
+  document.getElementById('displayClear').addEventListener('click', clearDisplay);
+
+  // 匯出/匯入
+  document.getElementById('btnExport').addEventListener('click', exportData);
+  document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importInput').click());
+  document.getElementById('importInput').addEventListener('change', importData);
+
+  buildFilterBar();
+  render();
+}
+
+init();
 </script>
 </body>
 </html>
