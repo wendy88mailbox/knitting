@@ -20,7 +20,17 @@
     --shadow: 0 4px 20px rgba(180,100,130,0.12);
     --radius: 16px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ── iOS Safari 觸控修正 ── */
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; margin: 0; padding: 0; }
+  button, .card, .filter-btn, .io-btn, .add-btn,
+  .toggle-row, .img-upload-area, .photo-slot,
+  .tags-input-wrap, .platform-icon,
+  .close-btn, .btn-edit, .btn-delete, .btn-save, .btn-cancel {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .overlay, .form-overlay { -webkit-overflow-scrolling: touch; }
+  .modal-wrapper { pointer-events: auto; }
   body { font-family: -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
   /* ── 頂部 ── */
@@ -335,8 +345,8 @@
     </div>
 
     <div class="form-btns">
-      <button class="btn-cancel" onclick="closeForm()">取消</button>
-      <button class="btn-save" onclick="saveWork()">💾 儲存作品</button>
+      <button class="btn-cancel" id="btnCancel">取消</button>
+      <button class="btn-save" id="btnSave">💾 儲存作品</button>
     </div>
   </div>
 </div>
@@ -368,7 +378,11 @@ if (works.length === 0) {
 }
 
 function saveWorks() {
-  localStorage.setItem('knitting_works', JSON.stringify(works));
+  try {
+    localStorage.setItem('knitting_works', JSON.stringify(works));
+  } catch(e) {
+    alert('⚠️ 儲存空間不足！請先匯出備份後，刪除部分作品或縮小圖片再試。');
+  }
 }
 
 /* 📤 匯出備份 */
@@ -507,7 +521,7 @@ function render() {
     return;
   }
   document.getElementById("gallery").innerHTML = list.map(w => `
-    <div class="card" onclick="openModal(${w.id})">
+    <div class="card" data-id="${w.id}" role="button" tabindex="0">
       ${thumbHTML(w)}
       <div class="card-body">
         <div class="card-title">${w.name} ${w.done ? '<span style="font-size:11px;color:#16a34a">✅</span>' : ''}</div>
@@ -516,6 +530,11 @@ function render() {
       </div>
     </div>
   `).join("");
+
+  // iOS Safari 相容：用 addEventListener 綁定觸控
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => openModal(Number(card.dataset.id)));
+  });
 }
 
 /* ═══════════════════════════════════════════
@@ -678,12 +697,34 @@ function handleFormOverlayClick(e) {
 
 function editWork(id) { openForm(id); }
 
+/* 🖼️ 圖片壓縮（限制最大寬高 800px，品質 0.75）*/
+function compressImage(dataUrl, maxSize=800, quality=0.75) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else       { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
 /* 封面圖片 */
 function handleCoverUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => { coverBase64 = ev.target.result; renderCoverPreview(); };
+  reader.onload = async ev => {
+    coverBase64 = await compressImage(ev.target.result);
+    renderCoverPreview();
+  };
   reader.readAsDataURL(file);
 }
 function renderCoverPreview() {
@@ -715,7 +756,10 @@ function handleDisplayUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => { displayBase64 = ev.target.result; renderDisplayPreview(); };
+  reader.onload = async ev => {
+    displayBase64 = await compressImage(ev.target.result);
+    renderDisplayPreview();
+  };
   reader.readAsDataURL(file);
 }
 function renderDisplayPreview() {
@@ -756,7 +800,10 @@ function handlePhotoUpload(e, idx) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => { photoBase64s[idx] = ev.target.result; renderPhotosGrid(); };
+  reader.onload = async ev => {
+    photoBase64s[idx] = await compressImage(ev.target.result);
+    renderPhotosGrid();
+  };
   reader.readAsDataURL(file);
 }
 function removePhoto(e, idx) {
@@ -829,6 +876,8 @@ function saveWork() {
 }
 
 /* 初始化 */
+document.getElementById('btnSave').addEventListener('click', saveWork);
+document.getElementById('btnCancel').addEventListener('click', closeForm);
 buildFilterBar();
 render();
 </script>
