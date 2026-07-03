@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="毛線作品">
+<meta name="apple-mobile-web-app-title" content="我的毛線">
 <meta name="theme-color" content="#c96b8a">
-<title>🧶 我的毛線作品索引</title>
+<title>🧶 我的毛線</title>
 <style>
   :root {
     --bg: #fdf6f0;
@@ -208,7 +208,7 @@
 <body>
 
 <header>
-  <h1>🧶 我的毛線作品索引</h1>
+  <h1>🧶 我的毛線</h1>
   <p>點擊作品查看照片、教學連結與製作筆記</p>
 </header>
 
@@ -270,7 +270,13 @@
     </div>
 
     <div class="form-group">
-      <label>過程照片（最多 6 張）</label>
+      <label>編織資料（可一次選取多張）</label>
+      <div style="margin-bottom:8px">
+        <button class="io-btn" id="btnPickPhotos" type="button" style="width:100%;justify-content:center;padding:12px">
+          📂 從相簿選取圖片
+        </button>
+        <input type="file" id="photosInput" accept="image/*" multiple style="display:none">
+      </div>
       <div class="photos-grid" id="photosGrid"></div>
     </div>
 
@@ -534,7 +540,7 @@ function openModal(id) {
   if (links.other)       linkRows.push(`<a class="modal-link link-other"    href="${links.other}"       target="_blank"><span class="icon">${ICONS.other}</span>其他連結</a>`);
 
   const photosHTML   = w.photos && w.photos.length
-    ? `<div class="modal-section"><h3>📸 過程照片</h3><div class="modal-photos">${w.photos.map(p=>`<img src="${p}" alt="">`).join("")}</div></div>` : "";
+    ? `<div class="modal-section"><h3>📂 編織資料</h3><div class="modal-photos">${w.photos.map(p=>`<img src="${p}" alt="">`).join("")}</div></div>` : "";
   const displayHTML  = w.displayImage
     ? `<div class="modal-section"><h3>🎨 作品展示</h3><div class="modal-img" style="border-radius:12px;margin-bottom:0;aspect-ratio:4/3"><img src="${w.displayImage}" alt="展示圖" style="border-radius:12px"></div></div>` : "";
   const statusBadges = [
@@ -603,8 +609,8 @@ function setToggle(elId, val, trueText, falseText) {
 function openForm(id=null) {
   editingId = id; currentTags = [];
   coverBase64 = ""; displayBase64 = "";
-  photoBase64s = ["","","","","",""];
   isDone = false; isBought = false;
+  photoBase64s = id ? [...(works.find(x=>x.id===id)?.photos||[])] : [];
   document.getElementById("formTitle").textContent = id ? "✏️ 編輯作品" : "✨ 新增作品";
   const fields = ["fName","fNeedle","fYarn","fNote","fBili","fXhs","fQl","fYt","fDy","fOther"];
   if (id) {
@@ -706,22 +712,31 @@ function renderDisplayPreview() {
 }
 function clearDisplay(e) { e.stopPropagation(); displayBase64 = ""; document.getElementById("displayInput").value = ""; renderDisplayPreview(); }
 
-/* 過程照片 */
+/* 編織資料（多選，不限張數）*/
 function renderPhotosGrid() {
   document.getElementById("photosGrid").innerHTML = photoBase64s.map((p, i) => `
     <div class="photo-slot">
-      ${p ? `<img src="${p}" alt="">` : `<span class="plus">＋</span>`}
-      ${p ? `<button class="remove-photo" type="button" onclick="removePhoto(event,${i})">✕</button>` : ''}
-      <input type="file" accept="image/*" onchange="handlePhotoUpload(event,${i})">
+      <img src="${p}" alt="">
+      <button class="remove-photo" type="button" onclick="removePhoto(event,${i})">✕</button>
     </div>`).join("");
 }
-function handlePhotoUpload(e, idx) {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async ev => { photoBase64s[idx] = await compressImage(ev.target.result); renderPhotosGrid(); };
-  reader.readAsDataURL(file);
+
+function handleMultiPhotoUpload(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  let processed = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      photoBase64s.push(await compressImage(ev.target.result));
+      processed++;
+      if (processed === files.length) renderPhotosGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = ''; // 允許重複選
 }
-function removePhoto(e, idx) { e.stopPropagation(); photoBase64s[idx] = ""; renderPhotosGrid(); }
+function removePhoto(e, idx) { e.stopPropagation(); photoBase64s.splice(idx, 1); renderPhotosGrid(); }
 
 /* 標籤 */
 function renderTags() {
@@ -832,6 +847,8 @@ async function init() {
   document.getElementById('displayInput').addEventListener('change', handleDisplayUpload);
   document.getElementById('coverClear').addEventListener('click', clearCover);
   document.getElementById('displayClear').addEventListener('click', clearDisplay);
+  document.getElementById('btnPickPhotos').addEventListener('click', () => document.getElementById('photosInput').click());
+  document.getElementById('photosInput').addEventListener('change', handleMultiPhotoUpload);
   document.getElementById('btnExport').addEventListener('click', exportData);
   document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importInput').click());
   document.getElementById('importInput').addEventListener('change', importData);
